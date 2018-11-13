@@ -19,26 +19,39 @@ app.set('port', process.env.PORT || 8080);
  */
 http.listen(app.get('port'), () => {
   console.log('%s App is running at http://localhost:%d in %s mode', chalk.green('✓'), app.get('port'), app.get('env'));
-  console.log('  Press CTRL-C to stop\n');
 });
 
+let numUsers = 0;
 io.on('connection', (socket) => {
-  var clients = io.sockets.clients();
+  let addedUser = false;
 
-  let username = socket.id
+  socket.on('add user', (username) => {
+    if (addedUser) return;
+
+    ++numUsers;
+    addedUser = true;
+    socket.username = username;
+    joinChannel(io);
+    io.emit('chat', `welcome ${username}. ${numUsers}/4`);
+    socket.emit('system', { numUsers });
+  });
+
+  socket.on('start game', () => {
+    io.emit('chat', 'starting...');
+  })
 
   socket.on('chat', (msg) => {
     console.log('message: ' + msg.text);
-    io.emit('chat', msg);
+    socket.emit('chat', msg);
   });
 
-  if (!socket.userId) {
-    joinChannel(io);
-    io.emit('chat', 'welcome');
-  }
-  else {
-    socket.userId = username;
-  }
+  socket.on('disconnect', () => {
+    if (addedUser) {
+      --numUsers;
+      io.emit('chat', `${socket.username} left. ${numUsers}/4`);
+      socket.emit('system', { numUsers });
+    }
+  });
 });
 
 app.get('/', function (req, res) {

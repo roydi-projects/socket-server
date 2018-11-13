@@ -1,14 +1,11 @@
 FROM node:8-slim
 
-WORKDIR /starter
-ENV NODE_ENV development
+WORKDIR /app
 
-COPY package.json /starter/package.json
+COPY package.json /app
+RUN npm install
 
-RUN npm install --production
-
-COPY .env.example /starter/.env.example
-COPY . /starter
+COPY . /app
 
 CMD ["npm","start"]
 
